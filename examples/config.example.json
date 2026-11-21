@@ -43,7 +43,8 @@
     "enabled": false,
     "max_days_back": 365,
     "max_sessions": 6,
-    "max_quotes": 2
+    "max_quotes": 2,
+    "cache_days": 90
   },
   "providers": {
     "mood": "",

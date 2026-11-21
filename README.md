@@ -1,13 +1,34 @@
 # chitchat
 
-让 LLM 的输出看起来像**人在发消息**：拆成聊天气泡、砍复读、过禁词、去掉 Markdown 痕迹，可选注入时间/情绪/人设。
+**一个「人格化 agent」的表达层与注入层。**
 
-Host-agnostic core（零依赖纯函数）+ 一个 Hermes 适配器。不用 Hermes 也能当库用。
+大多数 agent 只解决"能不能答对"；chitchat 解决另一半——**答出来的东西像不像一个具体的人说的**：
+
+- 输出**形态**：一段变几条、每条多长、有没有 Markdown 痕迹（表达层）
+- 上下文**装配**：这一轮该注入时间、情绪、记忆摘要还是行为规则，按什么顺序（注入层）
+
+它不生成内容、不存人设——人设和记忆属于宿主（skill / 文件 / 数据库）。它负责让这些内容在正确的时机、以正确的形态出现。
+
+零依赖纯函数核心 + 一个 Hermes 适配器；不用 Hermes 也能当库用。
 
 ```
 pip install -e .
 python examples/demo.py     # 153 字 → 6 条气泡，不用任何宿主
 ```
+
+## 在人格化 agent 里，它站在哪一层
+
+一个"长期在线的 AI 角色"通常拆成五层，chitchat 只占最右两列：
+
+| 层 | 职责 | 典型载体 | 本仓库 |
+|---|---|---|---|
+| 身份 | 它是谁、长什么样、过着什么生活 | persona 文本、角色卡 | ❌ 宿主 |
+| 记忆 | 记得什么、忘掉什么、多久蒸馏一次 | 3 天原文 → 14 天蒸馏 → 永久归档 | 🔌 提供读取接口 |
+| **注入** | 每轮把哪些片段塞进上下文、顺序与长度预算 | 钩子 + 配置文件 | ✅ |
+| 行为 | 什么场景怎么说、什么时候闭嘴 | 行为规则文档（skill） | ❌ 宿主 |
+| **表达** | 几条、多长、什么格式、失败怎么办 | 本仓库 core + pipeline | ✅ |
+
+所以：**仓库里没有人设内容，但它是为人格化 agent 设计的那两层**。你可以只拿表达层当排版工具，也可以把它接到自己的角色系统上。
 
 ---
 
@@ -44,9 +65,26 @@ return bubbles[-1]          # 最后一条走正常回复
 
 ## 它不做什么
 
-- ❌ 不做人设生成、记忆系统、TTS 合成
-- ❌ 不决定"说什么"，只改**怎么说**
+- ❌ 不生成、不存储人设——只从宿主给的文件里**读**（`providers.persona` / `mood` / `digest`）
+- ❌ 不实现记忆生命周期（提炼、蒸馏、归档），只提供按日期**查询**接口
+- ❌ 不合成语音，只提示模型输出 `MEDIA:`
+- ❌ 不决定"说什么"，只决定**说成什么样**
 - ❌ 不绑定任何 IM：发送由 `Transport` 协议提供，自带 Hermes 实现
+
+## 注入顺序为什么重要
+
+`pre_llm_call` 的注入块不是随便拼的。顺序决定模型把注意力放在哪：
+
+```
+1. 本轮问题清单      ← 先保证"这几件事都要答"
+2. 时间              ← 防止把预测当已发生
+3. 情绪 / 人设摘要    ← 决定语气
+4. 记忆召回          ← 只在命中"日期+记忆动词"时出现
+5. 语言/语音模式      ← 决定输出形态
+6. 输出完整性约束     ← 最后一句，防止"只说不做"
+```
+
+每一段都有长度上限（`inject.mood_max_chars`、provider 默认 600–800 字），超了截断加省略号——**注入不是越多越好，多了会稀释规则**。
 
 ## 安装
 
@@ -103,7 +141,7 @@ hermes plugins enable chitchat
 | `recall.enabled` | `false` | 按日期召回（需 `providers.history_db`） |
 | `providers.*` | 空 | mood / persona / digest 文件路径、history_db |
 
-细节：[`docs/PROVIDERS.md`](docs/PROVIDERS.md)（上下文源）、[`docs/SKILL-TEMPLATE.md`](docs/SKILL-TEMPLATE.md)（人设/风格该写在哪）。
+细节：[`docs/RUNTIME.md`](docs/RUNTIME.md)（人格化 agent 的分层与记忆生命周期）、[`docs/PROVIDERS.md`](docs/PROVIDERS.md)（上下文源）、[`docs/SKILL-TEMPLATE.md`](docs/SKILL-TEMPLATE.md)（人设/风格该写在哪）。
 
 ## 命令（Hermes 内）
 
@@ -132,7 +170,7 @@ chitchat/
 ├── hermes_plugin/     Hermes 插件目录（plugin.yaml + shim）
 ├── examples/          demo.py、config.example.json
 ├── tests/             33 个用例
-├── docs/              ARCHITECTURE / PROVIDERS / HOOKS / SKILL-TEMPLATE
+├── docs/              ARCHITECTURE / RUNTIME / PROVIDERS / HOOKS / SKILL-TEMPLATE
 └── scripts/privacy_scan.py
 ```
 

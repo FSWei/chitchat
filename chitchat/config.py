@@ -30,7 +30,7 @@ DEFAULTS: Dict[str, Any] = {
         "attention": True,
         "peer": True,
     },
-    "recall": {"enabled": False, "max_days_back": 365, "max_sessions": 6, "max_quotes": 2},
+    "recall": {"enabled": False, "max_days_back": 365, "max_sessions": 6, "max_quotes": 2, "cache_days": 90},
     "providers": {
         "mood": "",       # 文本文件路径，空=不注入
         "persona": "",    # 文本文件路径
