@@ -1,0 +1,60 @@
+{
+  "enabled": true,
+  "chat_ids": [
+    "oc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  "blacklist": {
+    "😂": "",
+    "示例词": "替换值"
+  },
+  "strip_markdown": true,
+  "dedup_repetition": true,
+  "bubble": {
+    "target_chars": 70,
+    "pack_limit": 140,
+    "max_bubbles": 12,
+    "delay_seconds": 1.2
+  },
+  "flags": {
+    "work_ttl_hours": 12,
+    "chat_ok_ttl_minutes": 10
+  },
+  "keywords": {
+    "work_on": "/work",
+    "work_off": "/chat"
+  },
+  "mode": {
+    "default_lang": "zh",
+    "default_voice": false,
+    "rules_en": ""
+  },
+  "inject": {
+    "time": true,
+    "timezones": [
+      "Asia/Shanghai"
+    ],
+    "mood": true,
+    "mood_max_chars": 800,
+    "mode": true,
+    "attention": true,
+    "peer": true
+  },
+  "recall": {
+    "enabled": false,
+    "max_days_back": 365,
+    "max_sessions": 6,
+    "max_quotes": 2
+  },
+  "providers": {
+    "mood": "",
+    "persona": "",
+    "digest": "",
+    "history_db": ""
+  },
+  "transport": {
+    "impl": "hermes"
+  },
+  "hermes": {
+    "db_path": ""
+  }
+}
