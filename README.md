@@ -54,7 +54,8 @@ hermes -p <profile> plugins enable chitchat
 
 `config.json` 热加载（按 mtime），改完不用重启；`chat_ids` 填你自己的会话 ID，其它会话完全不受影响。
 
-配置项见 [`docs/PROVIDERS.md`](docs/PROVIDERS.md) 与 `examples/config.example.json`。
+配置项见 [`docs/PROVIDERS.md`](docs/PROVIDERS.md) 与 `examples/config.example.json`；
+人设/风格该写在哪，见 [`docs/SKILL-TEMPLATE.md`](docs/SKILL-TEMPLATE.md)。
 
 ## 设计取舍
 
