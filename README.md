@@ -70,6 +70,11 @@ python -m pytest          # 33 个用例：core / config / modes / context / ada
 python scripts/privacy_scan.py   # 发布前自检：姓名、手机、邮箱、密钥、绝对路径
 ```
 
+## CI
+
+`docs/ci.yml.example` 是一份 GitHub Actions 配置（pytest + 隐私扫描 + demo 冒烟）。
+复制到 `.github/workflows/ci.yml` 即可启用——需要 token 带 `workflow` 权限。
+
 ## License
 
 MIT
