@@ -325,7 +325,11 @@ class HermesAdapter:
 
 def register(ctx) -> None:
     """Hermes 插件入口。"""
-    plugin_dir = Path(__file__).resolve().parents[2]
+    import os
+
+    plugin_dir = Path(os.environ.get("CHITCHAT_HOME") or Path(__file__).resolve().parents[2])
+    if plugin_dir.name == "hermes_plugin":
+        plugin_dir = plugin_dir  # 插件目录就是 config/state 的家
     adapter = HermesAdapter(plugin_dir)
     ctx.register_hook("transform_llm_output", adapter.on_transform)
     ctx.register_hook("pre_llm_call", adapter.on_pre_llm_call)

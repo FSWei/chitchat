@@ -7,3 +7,5 @@ dist/
 config.json
 state/
 .pytest_cache/
+hermes_plugin/config.json
+hermes_plugin/state/
