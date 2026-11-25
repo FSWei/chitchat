@@ -1,5 +1,5 @@
 name: chitchat
-version: 1.0.0
+version: 1.1.0
 description: >-
   Chat-style output shaping: split replies into bubbles, strip markdown, dedupe
   repetition, filter banned words, and optionally inject time / mood / persona

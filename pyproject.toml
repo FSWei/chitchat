@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chitchat"
-version = "1.0.0"
+version = "1.1.0"
 description = "Make an LLM's output read like a human chat: bubbles, dedup, banned words, optional context injection."
 readme = "README.md"
 requires-python = ">=3.9"
