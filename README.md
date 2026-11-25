@@ -8,10 +8,10 @@
 
 | 块 | 管什么 | 本仓 |
 |---|---|---|
-| 身份 | 她是谁、长什么样 | 待补：示例角色 + 人设模板（P2） |
+| 身份 | 她是谁、长什么样 | `character/`（示例角色 + 用户模板） |
 | 生活 | 分段日记、水位、防漂移 | `life/` + [docs/LIFE.md](docs/LIFE.md) |
 | 世界 | 新闻 0–1 条、真实天气一句 | `life/news_fetch.py` + [docs/WORLD.md](docs/WORLD.md) |
-| 形象 | 日记 → 照片：三层提示词 | [docs/IMAGE.md](docs/IMAGE.md)（不含出图代码） |
+| 形象 | 日记 → 照片：三层提示词 | [docs/IMAGE.md](docs/IMAGE.md) + [samples/images](samples/images) |
 | 记忆 | 3 天原文 → 14 天蒸馏 → 永久归档 | 读取接口 + [docs/RUNTIME.md](docs/RUNTIME.md) |
 | 说话 | 几条、多长、什么格式 | `chitchat/core.py`、`pipeline.py` |
 | 调度 | 谁替她跑：定时任务、任务书、水位 | [docs/RUNTIME.md](docs/RUNTIME.md)（跟宿主有关） |
@@ -53,6 +53,14 @@ return bubbles[-1]
 - **照片**：日记每一段带「衣着 / 发型 / 情绪 / 位置 / 活动」五个字段；出图时拼 `基础特征 + 当天状态 + 场景`，光线按「情绪 × 天气 × 时间」查表。
 - **记忆**：3 天原文 → 蒸馏成场景式记忆保留 14 天 → 进永久归档。蒸馏只复制、不删原文。
 
+## 示例图
+
+同一个角色，同一天的不同时段、不同场景。每张都是「基础特征 + 当天状态 + 场景」拼出来的，提示词在 [samples/images/prompts.json](samples/images/prompts.json)。
+
+| 刚醒（阴，八度） | 咖啡店（小雨） | 窗台的猫 |
+|---|---|---|
+| ![](samples/images/01-morning-bed.jpg) | ![](samples/images/03-cafe-window.jpg) | ![](samples/images/05-spark-window.jpg) |
+
 ## 安装
 
 ### 当 Python 库
@@ -92,8 +100,8 @@ cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
 |---|---|---|
 | P1 | 表达层与注入层（分条 / 去重 / 禁词 / 召回 / 守卫）、33 个用例、隐私扫描 | ✅ 已有 |
 | P1 | 日记水位脚本、新闻抓取脚本、八块文档 | ✅ 本次 |
-| P2 | 示例角色、3 篇样例日记、1 段对话样例、5 张示例图 | 待做 |
-| P3 | 记忆链路脚本、定时任务书模板、换宿主说明、出图脚本 | 待做 |
+| P2 | 示例角色、3 篇样例日记、1 段对话样例、5 张示例图、出图脚本 | ✅ 本次 |
+| P3 | 记忆链路脚本、定时任务书模板、换宿主说明 | 待做 |
 
 ## 目录
 
@@ -101,7 +109,9 @@ cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
 chitchat/
 ├── chitchat/          库本体（纯函数 core、config、context、recall、modes、providers、adapters）
 ├── hermes_plugin/     Hermes 插件目录（plugin.yaml + shim）
+├── character/         示例角色：人设、生活、衣橱、场景、基础特征、用户模板
 ├── life/              她的日子：日记水位、新闻抓取
+├── samples/           3 篇样例日记、1 段对话、5 张示例图（含生成脚本）
 ├── examples/          demo.py、config.example.json
 ├── tests/             33 个用例
 ├── docs/              RUNTIME（总览）/ LIFE / WORLD / IMAGE / ARCHITECTURE / HOOKS / PROVIDERS / SKILL-TEMPLATE
