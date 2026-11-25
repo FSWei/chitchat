@@ -13,3 +13,10 @@ life/state.json
 life/journal.md
 life/archive.md
 life/news/
+memory/chat-log.md
+memory/chat-archive.md
+memory/long-term-memory.md
+memory/deep-archive.md
+memory/chat-log-checkpoint.json
+memory/chat-log-state.json
+memory/*.tmp

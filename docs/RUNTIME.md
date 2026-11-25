@@ -35,6 +35,8 @@
 
 关键设计：**蒸馏只复制、不删原文**。原文永不丢，模型只看提炼版 —— 既不爆上下文，也不会把细节永久丢失。
 
+机械部分（按日期归档、深度归档、checkpoint 只前进）在 `memory/lifecycle.py`；蒸馏和总结由模型写，见 [cron/chat-log.md](../cron/chat-log.md)。
+
 两路输入通常来自定时任务：
 
 - 对话摘要：每 N 小时把新消息总结成一段
@@ -81,5 +83,6 @@
 | 约束 | ✅ `modes.py` 白名单 + TTL；`adapters/hermes.py` 三个守卫 |
 | 生活 | ✅ `life/journal_state.py` 水位（日记本身由模型写） |
 | 世界 | ✅ `life/news_fetch.py` 取标题；天气由宿主工具查 |
-| 记忆 | 🔌 只提供读取接口（provider），不实现蒸馏与归档 |
-| 身份 / 形象 / 调度 | 📄 文档给方法，代码待补 |
+| 记忆 | ✅ `memory/lifecycle.py`：按日期归档、深度归档、checkpoint 只前进；总结与蒸馏由模型写，读取走 provider |
+| 调度 | ✅ `cron/` 任务书模板 + 接线说明（定时器本身由宿主提供） |
+| 身份 / 形象 | 📄 文档 + `character/` 示例角色；出图脚本在 `samples/images/generate.py` |

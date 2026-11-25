@@ -52,6 +52,7 @@ return bubbles[-1]
 - **新闻**：`python3 life/news_fetch.py fetch` → 当天缓存，7 个源，混合取样最多 14 条标题；从里面挑 **0 或 1 条**写进日记，没有就不写。
 - **照片**：日记每一段带「衣着 / 发型 / 情绪 / 位置 / 活动」五个字段；出图时拼 `基础特征 + 当天状态 + 场景`，光线按「情绪 × 天气 × 时间」查表。
 - **记忆**：3 天原文 → 蒸馏成场景式记忆保留 14 天 → 进永久归档。蒸馏只复制、不删原文。
+- **维护**：`python3 memory/lifecycle.py archive --days 3` 移出旧条目并打印原文供蒸馏；`deep --days 14` 做深度归档；`check` 查上一轮有没有没推进的 checkpoint。
 
 ## 示例图
 
@@ -92,7 +93,7 @@ cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
 - provider 路径默认为空：不填就不注入任何个人内容。
 - 召回默认关闭；打开要自己给 `providers.history_db`。
 - 仓库里没有作者的人设、聊天记录、照片。示例角色是虚构的，示例日记是新写的。
-- 运行时产生的 `life/state.json`、`life/journal.md`、`life/news/` 都在 `.gitignore` 里。
+- 运行时产生的 `life/state.json`、`life/journal.md`、`life/news/`、`memory/*.md`、`memory/*.json` 都在 `.gitignore` 里。
 
 ## 现在到哪一步
 
@@ -101,7 +102,7 @@ cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
 | P1 | 表达层与注入层（分条 / 去重 / 禁词 / 召回 / 守卫）、33 个用例、隐私扫描 | ✅ 已有 |
 | P1 | 日记水位脚本、新闻抓取脚本、八块文档 | ✅ 本次 |
 | P2 | 示例角色、3 篇样例日记、1 段对话样例、5 张示例图、出图脚本 | ✅ 本次 |
-| P3 | 记忆链路脚本、定时任务书模板、换宿主说明 | 待做 |
+| P3 | 记忆链路脚本（归档/深度归档/checkpoint）、定时任务书模板、换宿主说明 | ✅ 本次 |
 
 ## 目录
 
@@ -111,10 +112,12 @@ chitchat/
 ├── hermes_plugin/     Hermes 插件目录（plugin.yaml + shim）
 ├── character/         示例角色：人设、生活、衣橱、场景、基础特征、用户模板
 ├── life/              她的日子：日记水位、新闻抓取
+├── memory/            记忆链路：按日期归档、深度归档、checkpoint
+├── cron/              定时任务书模板（日记、聊天记忆）+ 接线说明
 ├── samples/           3 篇样例日记、1 段对话、5 张示例图（含生成脚本）
 ├── examples/          demo.py、config.example.json
-├── tests/             33 个用例
-├── docs/              RUNTIME（总览）/ LIFE / WORLD / IMAGE / ARCHITECTURE / HOOKS / PROVIDERS / SKILL-TEMPLATE
+├── tests/             42 个用例
+├── docs/              RUNTIME（总览）/ LIFE / WORLD / IMAGE / PORTING / ARCHITECTURE / HOOKS / PROVIDERS / SKILL-TEMPLATE
 └── scripts/           privacy_scan.py（发布前自检）
 ```
 
@@ -122,7 +125,8 @@ chitchat/
 
 - 钩子名绑 Hermes 的 `transform_llm_output` / `pre_llm_call` / `pre_tool_call`；换宿主写 adapter，约 150 行。
 - 召回只支持按天查，默认表结构是 Hermes 的 `sessions` / `messages`。
-- 形象模块只给方法，不含出图调用（出图要自己的 key）。
+- 形象模块只给方法：出图脚本在 `samples/images/generate.py`，库本体不含出图调用（要自己的 key）。
+- 调度靠宿主：仓库只有任务书模板（`cron/`），没有内置定时器。
 - 她的一天靠定时任务驱动：机器关着就不发生，开机后补跑会迟到。
 
 ## License
