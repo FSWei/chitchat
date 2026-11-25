@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chitchat"
 version = "1.1.0"
-description = "Make an LLM's output read like a human chat: bubbles, dedup, banned words, optional context injection."
+description = "A character skeleton for agents: her own days, photos and memory, and a chat style that reads human."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

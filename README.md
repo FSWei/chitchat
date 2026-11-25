@@ -12,9 +12,9 @@
 | 生活 | 分段日记、水位、防漂移 | `life/` + [docs/LIFE.md](docs/LIFE.md) |
 | 世界 | 新闻 0–1 条、真实天气一句 | `life/news_fetch.py` + [docs/WORLD.md](docs/WORLD.md) |
 | 形象 | 日记 → 照片：三层提示词 | [docs/IMAGE.md](docs/IMAGE.md) + [samples/images](samples/images) |
-| 记忆 | 3 天原文 → 14 天蒸馏 → 永久归档 | 读取接口 + [docs/RUNTIME.md](docs/RUNTIME.md) |
+| 记忆 | 3 天原文 → 14 天蒸馏 → 永久归档 | `memory/lifecycle.py` + [docs/RUNTIME.md](docs/RUNTIME.md) |
 | 说话 | 几条、多长、什么格式 | `chitchat/core.py`、`pipeline.py` |
-| 调度 | 谁替她跑：定时任务、任务书、水位 | [docs/RUNTIME.md](docs/RUNTIME.md)（跟宿主有关） |
+| 调度 | 谁替她跑：定时任务、任务书、水位 | `cron/` 任务书 + [cron/README.md](cron/README.md) |
 | 约束 | 白名单、写闸、TTL、失败放行 | `chitchat/modes.py` + adapter |
 
 分工一句话：**人设和记忆属于宿主，这套东西管「什么时候塞什么进上下文」和「塞进去之后长什么样」。**
