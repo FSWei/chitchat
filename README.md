@@ -1,36 +1,31 @@
 # chitchat
 
-**一个「人格化 agent」的表达层与注入层。**
+一套让 agent 变成「一个人」的骨架。
 
-大多数 agent 只解决"能不能答对"；chitchat 解决另一半——**答出来的东西像不像一个具体的人说的**：
+模型能答对问题，但答得像不像一个具体的人，是另一回事：一次吐一整篇、把设定忘光、日子只有今天、说的话没有自己的味道。这套东西专门治这几件事。
 
-- 输出**形态**：一段变几条、每条多长、有没有 Markdown 痕迹（表达层）
-- 上下文**装配**：这一轮该注入时间、情绪、记忆摘要还是行为规则，按什么顺序（注入层）
+八块，看这个仓库给了什么：
 
-它不生成内容、不存人设——人设和记忆属于宿主（skill / 文件 / 数据库）。它负责让这些内容在正确的时机、以正确的形态出现。
+| 块 | 管什么 | 本仓 |
+|---|---|---|
+| 身份 | 她是谁、长什么样 | 待补：示例角色 + 人设模板（P2） |
+| 生活 | 分段日记、水位、防漂移 | `life/` + [docs/LIFE.md](docs/LIFE.md) |
+| 世界 | 新闻 0–1 条、真实天气一句 | `life/news_fetch.py` + [docs/WORLD.md](docs/WORLD.md) |
+| 形象 | 日记 → 照片：三层提示词 | [docs/IMAGE.md](docs/IMAGE.md)（不含出图代码） |
+| 记忆 | 3 天原文 → 14 天蒸馏 → 永久归档 | 读取接口 + [docs/RUNTIME.md](docs/RUNTIME.md) |
+| 说话 | 几条、多长、什么格式 | `chitchat/core.py`、`pipeline.py` |
+| 调度 | 谁替她跑：定时任务、任务书、水位 | [docs/RUNTIME.md](docs/RUNTIME.md)（跟宿主有关） |
+| 约束 | 白名单、写闸、TTL、失败放行 | `chitchat/modes.py` + adapter |
 
-零依赖纯函数核心 + 一个 Hermes 适配器；不用 Hermes 也能当库用。
+分工一句话：**人设和记忆属于宿主，这套东西管「什么时候塞什么进上下文」和「塞进去之后长什么样」。**
 
-```
-pip install -e .
-python examples/demo.py     # 153 字 → 6 条气泡，不用任何宿主
-```
+## 为什么不能只靠提示词
 
-## 在人格化 agent 里，它站在哪一层
+三条，每条在本仓都有对应的代码或脚本：
 
-一个"长期在线的 AI 角色"通常拆成五层，chitchat 只占最右两列：
-
-| 层 | 职责 | 典型载体 | 本仓库 |
-|---|---|---|---|
-| 身份 | 它是谁、长什么样、过着什么生活 | persona 文本、角色卡 | ❌ 宿主 |
-| 记忆 | 记得什么、忘掉什么、多久蒸馏一次 | 3 天原文 → 14 天蒸馏 → 永久归档 | 🔌 提供读取接口 |
-| **注入** | 每轮把哪些片段塞进上下文、顺序与长度预算 | 钩子 + 配置文件 | ✅ |
-| 行为 | 什么场景怎么说、什么时候闭嘴 | 行为规则文档（skill） | ❌ 宿主 |
-| **表达** | 几条、多长、什么格式、失败怎么办 | 本仓库 core + pipeline | ✅ |
-
-所以：**仓库里没有人设内容，但它是为人格化 agent 设计的那两层**。你可以只拿表达层当排版工具，也可以把它接到自己的角色系统上。
-
----
+1. 规则写在提示词里，模型会「合理化」绕过它。分条、去重、禁词、markdown 剥离是代码，不是建议 —— `chitchat/core.py`。
+2. 日子只有今天，就只能靠预报；预报到第二天必然对账，对账会自我增殖。所以日记只写**已经过完的那一段**，水位脚本管到哪一刻 —— `life/journal_state.py`。
+3. 记得一切等于什么都没记住。3 天原文、14 天蒸馏、永久归档；模型平时只读蒸馏后的结论。
 
 ## 30 秒上手（当库用）
 
@@ -44,158 +39,81 @@ bubbles = transform(model_output, {
     "bubble": {"target_chars": 70, "pack_limit": 140, "max_bubbles": 12},
 })
 
-for b in bubbles[:-1]:      # 前 N-1 条自己发
+for b in bubbles[:-1]:
     send(chat_id, b)
-return bubbles[-1]          # 最后一条走正常回复
+return bubbles[-1]
 ```
 
-返回 `["...", "...", "..."]`。含代码块 / 表格 / `MEDIA:` 的回复原样返回一条，不拆。
+返回气泡列表；含代码块 / 表格 / `MEDIA:` 的回复原样返回一条，不拆。
 
-## 它做什么
+## 三分钟看它怎么跑
 
-| 能力 | 说明 |
-|---|---|
-| 分气泡 | 换行=气泡边界；行内按句打包到 `target_chars`，单条不超 `pack_limit`，超出 `max_bubbles` 合并尾部（不丢内容） |
-| 复读防护 | 尾部整块重复迭代删除；短促重复（"哈哈"）保留 |
-| 禁词表 | `{"禁词": "替换值"}`，值为空串即删除 |
-| Markdown 剥离 | 标题井号、`**加粗**`、`__下划线__`、列表符号 |
-| 上下文注入 | 时间（可多时区）、情绪/人设文本、按日期召回历史、当前模式 |
-| 模式 | `/work` 休眠、`/chat` 恢复、`/en` `/zh` 语言、`/voice` 语音 |
-| 守卫 | 名单内 skill 不许加载、状态文件不许乱改（都可关） |
-
-## 它不做什么
-
-- ❌ 不生成、不存储人设——只从宿主给的文件里**读**（`providers.persona` / `mood` / `digest`）
-- ❌ 不实现记忆生命周期（提炼、蒸馏、归档），只提供按日期**查询**接口
-- ❌ 不合成语音，只提示模型输出 `MEDIA:`
-- ❌ 不决定"说什么"，只决定**说成什么样**
-- ❌ 不绑定任何 IM：发送由 `Transport` 协议提供，自带 Hermes 实现
-
-## 注入顺序为什么重要
-
-`pre_llm_call` 的注入块不是随便拼的。顺序决定模型把注意力放在哪：
-
-```
-1. 本轮问题清单      ← 先保证"这几件事都要答"
-2. 时间              ← 防止把预测当已发生
-3. 情绪 / 人设摘要    ← 决定语气
-4. 记忆召回          ← 只在命中"日期+记忆动词"时出现
-5. 语言/语音模式      ← 决定输出形态
-6. 输出完整性约束     ← 最后一句，防止"只说不做"
-```
-
-每一段都有长度上限（`inject.mood_max_chars`、provider 默认 600–800 字），超了截断加省略号——**注入不是越多越好，多了会稀释规则**。
+- **日记**：`python3 life/journal_state.py status` → 只有 `SHOULD_RUN=yes` 才写，写完 `commit` 推进水位；两次间隔不到 90 分钟直接跳过。
+- **新闻**：`python3 life/news_fetch.py fetch` → 当天缓存，7 个源，混合取样最多 14 条标题；从里面挑 **0 或 1 条**写进日记，没有就不写。
+- **照片**：日记每一段带「衣着 / 发型 / 情绪 / 位置 / 活动」五个字段；出图时拼 `基础特征 + 当天状态 + 场景`，光线按「情绪 × 天气 × 时间」查表。
+- **记忆**：3 天原文 → 蒸馏成场景式记忆保留 14 天 → 进永久归档。蒸馏只复制、不删原文。
 
 ## 安装
 
-### A. 当 Python 库
+### 当 Python 库
 
 ```bash
 git clone https://github.com/FSWei/chitchat
 cd chitchat
 python -m venv .venv && . .venv/bin/activate
 pip install -e .
+python examples/demo.py
 ```
 
-Python ≥ 3.9，无运行时依赖。
+Python ≥ 3.9，无运行时依赖（Windows 会多装一个 `tzdata`）。
 
-### B. 当 Hermes 插件
-
-插件目录里必须有 `plugin.yaml` 和 `__init__.py`。本仓库的 `hermes_plugin/` 就是这样一个目录：
+### 当 Hermes 插件
 
 ```bash
-git clone https://github.com/FSWei/chitchat ~/chitchat
-
-# 1. 挂进 profile（软链，改代码即时生效；也可直接 cp -r）
 ln -s ~/chitchat/hermes_plugin ~/.hermes/profiles/<profile>/plugins/chitchat
-
-# 2. 配置：放插件目录或 CHITCHAT_HOME 指向的目录
-mkdir -p ~/.hermes/chitchat && cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
-# 在 profile 的 env 里设：CHITCHAT_HOME=~/.hermes/chitchat
-
-# 3. 启用 + 校验
-hermes plugins validate ~/chitchat/hermes_plugin   # 应输出 Validation passed
-hermes plugins enable chitchat
+mkdir -p ~/.hermes/chitchat
+cp ~/chitchat/examples/config.example.json ~/.hermes/chitchat/config.json
+# 在 profile 的环境变量里设 CHITCHAT_HOME=~/.hermes/chitchat，然后重启网关
 ```
 
-启用后**重启网关进程**（插件只在启动时加载）。`hermes plugins validate` 会实跑一次 `register()`，能过就说明钩子声明和真实注册一致。
+`config.json` 按 mtime 热加载，改完不用重启；`chat_ids` 只填你想管的会话，其它会话完全不受影响。
 
-`config.json` 按 mtime 热加载，改完不用重启；`chat_ids` 只填你想管的会话，其它会话完全不受影响（`enabled: false` 时全局休眠）。
+## 隐私默认值
 
-## 配置
+- `enabled: false`、`chat_ids: []`：装了什么都不做，必须显式指定会话。
+- provider 路径默认为空：不填就不注入任何个人内容。
+- 召回默认关闭；打开要自己给 `providers.history_db`。
+- 仓库里没有作者的人设、聊天记录、照片。示例角色是虚构的，示例日记是新写的。
+- 运行时产生的 `life/state.json`、`life/journal.md`、`life/news/` 都在 `.gitignore` 里。
 
-完整示例见 [`examples/config.example.json`](examples/config.example.json)。常改的几项：
+## 现在到哪一步
 
-| 键 | 默认 | 说明 |
+| 阶段 | 内容 | 状态 |
 |---|---|---|
-| `enabled` | `false` | 总开关 |
-| `chat_ids` | `[]` | 只管这些会话；空 = 谁都不管 |
-| `bubble.target_chars` | `70` | 单条目标长度 |
-| `bubble.pack_limit` | `140` | 单条硬上限 |
-| `bubble.max_bubbles` | `12` | 超过则合并尾部 |
-| `bubble.delay_seconds` | `1.2` | 气泡间间隔 |
-| `blacklist` | `{}` | 禁词 → 替换值（空串=删） |
-| `strip_markdown` | `true` | 去掉 Markdown 结构 |
-| `dedup_repetition` | `true` | 复读防护 |
-| `inject.*` | 全开 | 时间 / 情绪 / 人设 / 模式 / 问题清单 / 中文片段 |
-| `recall.enabled` | `false` | 按日期召回（需 `providers.history_db`） |
-| `providers.*` | 空 | mood / persona / digest 文件路径、history_db |
-
-细节：[`docs/RUNTIME.md`](docs/RUNTIME.md)（人格化 agent 的分层与记忆生命周期）、[`docs/PROVIDERS.md`](docs/PROVIDERS.md)（上下文源）、[`docs/SKILL-TEMPLATE.md`](docs/SKILL-TEMPLATE.md)（人设/风格该写在哪）。
-
-## 命令（Hermes 内）
-
-| 命令 | 作用 | 作用域 |
-|---|---|---|
-| `/work` | 进入工作模式（插件完全休眠） | 任何会话 |
-| `/chat` | 恢复闲聊模式 | 任何会话 |
-| `/en` `/zh` | 切换回复语言 | 仅启用会话、非工作模式 |
-| `/voice [on\|off]` | 语音开关 | 同上 |
-
-工作模式默认 12h 自动过期（`flags.work_ttl_hours`），不会把你永久静音。
+| P1 | 表达层与注入层（分条 / 去重 / 禁词 / 召回 / 守卫）、33 个用例、隐私扫描 | ✅ 已有 |
+| P1 | 日记水位脚本、新闻抓取脚本、八块文档 | ✅ 本次 |
+| P2 | 示例角色、3 篇样例日记、1 段对话样例、5 张示例图 | 待做 |
+| P3 | 记忆链路脚本、定时任务书模板、换宿主说明、出图脚本 | 待做 |
 
 ## 目录
 
 ```
 chitchat/
-├── chitchat/
-│   ├── core.py        分气泡 / 打包 / 去重 / 禁词 / markdown（纯函数）
-│   ├── config.py      schema + 校验 + mtime 热加载
-│   ├── context.py     注入块拼装
-│   ├── recall.py      按日期召回（日期 + 记忆动词双闸）
-│   ├── modes.py       工作模式 flag、语言/语音模式
-│   ├── pipeline.py    core 的处理链
-│   ├── providers/     TextProvider / HistoryProvider + SqliteHistory
-│   └── adapters/      hermes.py（三钩子五命令）、transport.py
+├── chitchat/          库本体（纯函数 core、config、context、recall、modes、providers、adapters）
 ├── hermes_plugin/     Hermes 插件目录（plugin.yaml + shim）
+├── life/              她的日子：日记水位、新闻抓取
 ├── examples/          demo.py、config.example.json
 ├── tests/             33 个用例
-├── docs/              ARCHITECTURE / RUNTIME / PROVIDERS / HOOKS / SKILL-TEMPLATE
-└── scripts/privacy_scan.py
+├── docs/              RUNTIME（总览）/ LIFE / WORLD / IMAGE / ARCHITECTURE / HOOKS / PROVIDERS / SKILL-TEMPLATE
+└── scripts/           privacy_scan.py（发布前自检）
 ```
 
-## 设计取舍
+## 局限
 
-1. **失败即放行**：任何异常返回 `None`（原文照发）——插件不能吞消息。
-2. **状态是文件**：`state/work.flag`、`state/mode.json` 肉眼可查、可手改，不用数据库。
-3. **上下文靠 provider**：两个 Protocol，接自己的记忆系统不用改源码；没有 provider 就什么都不注入。
-4. **仓库无个人内容**：人设、词表、chat_id 全在 `config.json` 或 provider 指向的文件里。
-
-## 测试
-
-```bash
-python -m pytest                    # 33 passed（core / config / modes / context / adapter）
-python examples/demo.py             # 冒烟
-python scripts/privacy_scan.py      # 发布前自检：姓名、手机、邮箱、密钥、绝对路径
-```
-
-`docs/ci.yml.example` 是 GitHub Actions 配置（pytest + 隐私扫描 + demo），复制到 `.github/workflows/ci.yml` 即可启用。
-
-## 已知限制
-
-- 钩子名绑定 Hermes 的 `transform_llm_output` / `pre_llm_call` / `pre_tool_call`；换宿主需要写新的 adapter（约 150 行，参考 `adapters/hermes.py`）。
-- 召回只支持按天查；默认表结构是 Hermes 的 `sessions` / `messages`。
-- 语音模式只负责提示模型调用 TTS 并输出 `MEDIA:`，具体 TTS 由宿主提供。
+- 钩子名绑 Hermes 的 `transform_llm_output` / `pre_llm_call` / `pre_tool_call`；换宿主写 adapter，约 150 行。
+- 召回只支持按天查，默认表结构是 Hermes 的 `sessions` / `messages`。
+- 形象模块只给方法，不含出图调用（出图要自己的 key）。
+- 她的一天靠定时任务驱动：机器关着就不发生，开机后补跑会迟到。
 
 ## License
 

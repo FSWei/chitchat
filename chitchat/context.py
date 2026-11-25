@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 from zoneinfo import ZoneInfo
@@ -25,10 +25,22 @@ def weekday_zh(dt: datetime) -> str:
     return WEEKDAY_ZH[dt.weekday()]
 
 
+def utc_now() -> datetime:
+    """取 UTC 当前时间。
+
+    Windows 上 zoneinfo 需要 tzdata 包，缺了会抛 ZoneInfoNotFoundError；
+    取时间这一步不该因为时区库缺失就炸掉整轮注入，所以兜底到 datetime.timezone.utc。
+    """
+    try:
+        return datetime.now(ZoneInfo("UTC"))
+    except Exception:
+        return datetime.now(timezone.utc)
+
+
 def time_context(timezones: List[str] | None = None) -> str:
     """默认只报本机时区；配置里可以再加几个，避免"把预测当已发生"这类时间错误。"""
     zones = timezones or ["Asia/Shanghai"]
-    now_utc = datetime.now(ZoneInfo("UTC"))
+    now_utc = utc_now()
     parts = []
     for name in zones:
         try:

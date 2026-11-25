@@ -9,3 +9,7 @@ state/
 .pytest_cache/
 hermes_plugin/config.json
 hermes_plugin/state/
+life/state.json
+life/journal.md
+life/archive.md
+life/news/

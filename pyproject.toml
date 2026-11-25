@@ -16,7 +16,10 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
-dependencies = []
+dependencies = [
+  # Windows 上没有系统 tzdata，zoneinfo 需要这个包才能解析 Asia/Shanghai 之类的时区
+  "tzdata; sys_platform == 'win32'",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
